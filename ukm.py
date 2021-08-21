@@ -1,39 +1,13 @@
 import asyncio
 from datetime import datetime
 import socket
-from controller import UProtocol
+from protocol import UluxProtocol
 import constants
 from functions import get_config
 from switch import Switch
 
 
-def createdgram(message):
-    msg_len = len(message) + 16
-    # datagram = Buffer.concat([headerbuffer,message],len)
-    # packid = packid + 1
-    # if packid == 65536:
-    #    packid = 1
-    # datagram.writeUInt16LE(len, 2)
-   #
-   # datagram.writeUInt16LE(packid, 6)
-   # return datagram
 
-
-def createdateaimemessage():
-    mes = []
-    d = datetime.now()
-    mes.append(0x0c)
-    mes.append(0x2f)
-    mes.append(0x00)
-    mes.append(0x00)
-    mes.append(d.Seconds())
-    mes.append(d.Minutes())
-    mes.append(d.Hours())
-    mes.append(d.UTCDay())
-    mes.append(d.UTCDate())
-    mes.append(d.Month()+1)
-    #mes.writeUInt16LE(d.getFullYear(), 10)
-    return mes
 
 
 def switch_init():
@@ -82,12 +56,12 @@ async def main():
 
     # load devices from config
     nr_of_devices = 0
-    for device in get_config()['devices']:
-        DEVICELIST.append(Switch(device))
+    for switch_id in get_config()['devices']:
+        SWITCHLIST.append(Switch(switch_id))
         nr_of_devices += 1
     print(f'  |- {nr_of_devices} configured switches:')
-    for device in DEVICELIST:
-        print(f'    |- {device.name}   [{device.ip}]')
+    for switch in SWITCHLIST:
+        print(f'    |- {switch.name}   [{switch.ip}]')
 
     print(f'  |- Starttime: {datetime.now().strftime("%d.%m.%y %H:%M:%S")}')
 
@@ -99,7 +73,7 @@ async def main():
     # One protocol instance will be created to serve all
     # client requests.
     transport, protocol = await loop.create_datagram_endpoint(
-        lambda: UProtocol(DEVICELIST),
+        lambda: UluxProtocol(SWITCHLIST),
         local_addr=('0.0.0.0', constants.PORT))
     print(f'  |- Socket: {transport.get_extra_info("socket")}')
     print(f'  |- Network port: {constants.PORT}')
@@ -108,5 +82,5 @@ async def main():
 
 
 # run main function
-DEVICELIST = []
+SWITCHLIST = []
 asyncio.run(main())
