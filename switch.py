@@ -12,8 +12,16 @@ class Switch(object):
 
         # switch sensors
         self.proximity_sensor = False
-        self.motion_sensor = False
+        self.addon_motion_sensor = False
+        self.addon_voc_sensor = False
+        self.addon_in2 = False
+        self.addon_co2 = False
+        self.addon_humidity = False
+        self.addon_temperature = False
         self.light_sensor = False
+
+        # sensor values
+        self.light_brigthness = 0
         self.temperature = 0
         self.humidity = 0
 
@@ -22,5 +30,7 @@ class Switch(object):
         self.audio_active = False
         self.page_active = 0
         self.nr_pages = 0
+        self.intro_active = False
+        self.device_error = False
 
 
