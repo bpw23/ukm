@@ -70,7 +70,7 @@ class UluxProtocol:
                 for cmd in datagram[1]:
                     print(f'         |- Command: {hexlify(cmd)}')
                     if byte2int(cmd[1:2]) == 1:
-                        print(f'         |- Read / request the state flags:')
+                        print(f'         |- Read / request the state flags')
                         self.state_flags(cmd, actual_switch)
                     elif byte2int(cmd[1:2]) == 2:
                         print(f'         |- set state flags')
@@ -88,11 +88,18 @@ class UluxProtocol:
                         print(f'         |- activate / deactivate the switch')
                     elif byte2int(cmd[1:2]) == 46:
                         print(f'         |- Read / request / write of pageindex')
+                        actual_switch.page_active = self.selected_page(hexlify(cmd))
+                        print(f'         |- Switched to page {actual_switch.page_active}')
                     elif byte2int(cmd[1:2]) == 47:
                         print(f'         |- Read / request / write Date and Time')
                     elif byte2int(cmd[1:2]) == 65:
                         print(f'         |- Read / request / write of real-value, edit-value '
                               f'and LEDs of a specific actor')
+                    elif byte2int(cmd[1:2]) == 66:
+                        print(f'         |- Read / request / write of edit-value for a specific '
+                              f'actor')
+                        edit_value = self.edit_value(hexlify(cmd))
+                        print(f'         |- Actor: {edit_value[0]} - value: {edit_value[1]}')
                     else:
                         print(f'         |- WARNING: Unknown message type!')
             else:
@@ -100,7 +107,8 @@ class UluxProtocol:
 
     def state_flags(self, msg, switch):
         bits = format(int(hexlify(msg)[8:10], 16), '08b')
-        print(f'         |- BITS 0-7 {bits}')
+        if constants.DEBUG:
+            print(f'         |- BITS 0-7 {bits}')
 
         if bits[7] == '1':  # Bit 0 in uLux manual
             if constants.DEBUG:
@@ -167,7 +175,8 @@ class UluxProtocol:
             switch.device_error = False
 
         bits = format(int(hexlify(msg)[10:12], 16), '08b')
-        print(f'         |- BITS 7-14 BITS {bits}')
+        if constants.DEBUG:
+            print(f'         |- BITS 7-14 BITS {bits}')
 
         # Bits 8-10 reserved for future usage
 
@@ -192,11 +201,13 @@ class UluxProtocol:
         # Bits 13-23 reserved for future usage
 
         bits = format(int(hexlify(msg)[12:14], 16), '08b')
-        print(f'         |- BITS 15-23 BITS {bits}')
+        if constants.DEBUG:
+            print(f'         |- BITS 15-23 BITS {bits}')
         # Bits 13-23 reserved for future usage
 
         bits = format(int(hexlify(msg)[14:16], 16), '08b')
-        print(f'         |- BITS 24-31 BITS {bits}')
+        if constants.DEBUG:
+            print(f'         |- BITS 24-31 BITS {bits}')
 
         if bits[7] == '1':  # Bit 24
             if constants.DEBUG:
@@ -301,3 +312,22 @@ class UluxProtocol:
 
                 return header, messages
 
+    def selected_page(self, msg):
+        """
+        Return the page number the corresponding message
+        :param
+        msg: the page_index command message from the switch
+        :return:
+        int: page
+        """
+        return int(str(msg[8:10], encoding='ansi'), 16)
+
+    def edit_value(self, msg):
+        """
+
+        :param msg:
+        :return:
+        """
+        actor = word2int(unhexlify(msg[4:8]))
+        value = word2int(unhexlify(msg[8:12]))
+        return (actor, value)
