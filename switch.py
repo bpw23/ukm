@@ -9,6 +9,7 @@ class Switch(object):
         self.name = self.config['NAME']
         self.project_id = self.config['PROJECT_ID']
         self.design_id = self.config['DESIGN_ID']
+        self.group_address_values = {}
 
         # switch sensors
         self.proximity_sensor = False
