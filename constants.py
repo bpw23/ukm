@@ -14,7 +14,7 @@ FRAMEID = 0x8601
 VIDEOFRAMEID = 0x8602
 
 # DEBUG
-DEBUG = False
+DEBUG = True
 
 # package ID start
 PACKAGEID = 1

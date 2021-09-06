@@ -324,10 +324,10 @@ class UluxProtocol:
 
     def edit_value(self, msg):
         """
-
+        Return the actor and its value of an editvalue msg
         :param msg:
         :return:
         """
         actor = word2int(unhexlify(msg[4:8]))
         value = word2int(unhexlify(msg[8:12]))
-        return (actor, value)
+        return actor, value

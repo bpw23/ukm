@@ -1,8 +1,13 @@
+import asyncio
+
+from xknx.core import ValueReader
+from xknx.telegram import GroupAddress
+
 from functions import get_config
 
 
 class Switch(object):
-    def __init__(self, switch_id):
+    def __init__(self, switch_id, xknx):
         self.id = switch_id
         self.config = get_config()['devices'][self.id]
         self.ip = self.config['IP']
@@ -10,6 +15,7 @@ class Switch(object):
         self.project_id = self.config['PROJECT_ID']
         self.design_id = self.config['DESIGN_ID']
         self.group_address_values = {}
+        self.xknx = xknx
 
         # switch sensors
         self.proximity_sensor = False
@@ -34,4 +40,24 @@ class Switch(object):
         self.intro_active = False
         self.device_error = False
 
+        # get values for init
+        self.get_group_address_values()
+
+    async def get_group_address_values(self):
+        # get knx values
+        for address in self.config['mapping']:
+            value_reader = ValueReader(self.xknx, GroupAddress(address))
+            telegram = await value_reader.read()
+            if telegram is not None:
+                self.group_address_values[address] = telegram
+
+        # send values to switch
+
+    async def tset(self):
+        async with self.xknx as xknx:
+            switch = Switch(xknx,
+                            name='TestSwitch',
+                            group_address='1/1/11')
+
+            await switch.set_on()
 
