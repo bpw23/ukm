@@ -96,5 +96,6 @@ def frameversion(byte):
     :return:
     """
     return int(convert_hex(str(hexlify(byte), encoding="ansi"), "big", "little"), 10)/100
-
+# msg  frln frve pkid
 # 0186 1600 3202 0500 0000 0000 0300 0100 06 43 0500 1a00
+# 0186 1c00 3202 0300 0000 0000 0200 0100 0c 43 0500 ae11 af11 b011 b111

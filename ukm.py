@@ -12,12 +12,13 @@ from xknx.io import (
     KNXIPInterface,
 )
 from xknx.dpt.dpt_2byte_float import DPT2ByteFloat
+from xknx.dpt.dpt_1byte_uint import DPTValue1ByteUnsigned
 
 import constants
 from functions import get_config, word2int
 from switch import Switch
 from protocol import UluxProtocol
-from messages import send_real_value
+from switch_messages import send_real_value, send_edit_value
 
 
 SWITCHLIST = []
@@ -30,7 +31,7 @@ def exit_handler(xknx):
 def dev_upda(dev):
     print('DEVICE UPDATE', dev)
 
-async def telegram_received_cb(telegram):
+async def knx_telegram_received(telegram):
     """
     React on received knx telegrams, write values to switch
     :param telegram:
@@ -51,16 +52,26 @@ async def telegram_received_cb(telegram):
             if group_address in switch.config['mapping']:
                 print(f" ├SwitchID: {switch.id} - [{switch.name}]")
                 print(f"   ├Name: {switch.config['mapping'][group_address]['name']}")
-                value = DPT2ByteFloat.from_knx(telegram.payload.value.value)
+                # convert value on payload type
+                if telegram.payload.CODE.value == 64:
+                    value = DPT2ByteFloat.from_knx(telegram.payload.value.value)
+                elif telegram.payload.CODE.value == 128:
+                    value = DPTValue1ByteUnsigned.from_knx(telegram.payload.value.value)
+                else:
+                    print('PAYLOAD CODE [KNX DATA TYPE] NOT IMPLEMENTED!!!!')
                 print(f"   ├Value: {value}")
                 actor = switch.config['mapping'][group_address]['actor_id']
                 print(f"   ├Actor: {actor}")
                 switch.group_address_values[group_address] = telegram.payload.value.value
-                # send data to switch
 
-                send_real_value(switch, actor, value)
+
+                # select actor data type
+                if switch.config['mapping'][group_address]['actor_value_type'] > 0:
+                    send_real_value(switch, actor, value)
+                elif switch.config['mapping'][group_address]['actor_value_type'] == 0:
+                    send_edit_value(switch, actor, value)
     except Exception as e:
-        print(f'Error on KNX receive handling: {e}')
+        print(f'[function knx_telegram_received] Error when handling KNX data: {e}')
 
 
 async def main():
@@ -68,7 +79,7 @@ async def main():
 
     # KNX
     print(' |- Opening KNX communication...')
-    xknx = XKNX(telegram_received_cb=telegram_received_cb,
+    xknx = XKNX(telegram_received_cb=knx_telegram_received,
                 daemon_mode=False)
     connection_config = ConnectionConfig(
         connection_type=ConnectionType.TUNNELING,
@@ -98,10 +109,10 @@ async def main():
 
     # One protocol instance will be created to serve all
     # client requests.
-    transport, protocol = await loop.create_datagram_endpoint(
+    constants.TRANSPORT, protocol = await loop.create_datagram_endpoint(
         lambda: UluxProtocol(SWITCHLIST),
         local_addr=('0.0.0.0', constants.PORT))
-    print(f'  |- Socket: {transport.get_extra_info("socket")}')
+    print(f'  |- Socket: {constants.TRANSPORT.get_extra_info("socket")}')
     print(f'  |- Network port: {constants.PORT}')
     while True:
         await asyncio.sleep(100)

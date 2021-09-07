@@ -18,3 +18,6 @@ DEBUG = True
 
 # package ID start
 PACKAGEID = 1
+
+# Transport
+TRANSPORT =None

@@ -2,7 +2,7 @@ from binascii import hexlify, unhexlify
 from datetime import datetime
 import constants
 from functions import word2int, byte2int, byte2bit, frameversion
-from messages import init_switch, send_time
+from switch_messages import init_switch, send_time
 
 
 class UluxProtocol:
