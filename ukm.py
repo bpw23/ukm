@@ -19,6 +19,7 @@ from functions import get_config, word2int
 from switch import Switch
 from protocol import UluxProtocol
 from switch_messages import send_real_value, send_edit_value
+from json_read import update_json_sources, update_actor_data
 
 
 SWITCHLIST = []
@@ -77,6 +78,9 @@ async def knx_telegram_received(telegram):
 async def main():
     print('Starting UKM (Ulux-Knx-Middleware) server')
 
+    # get configuration
+    config = get_config()
+
     # KNX
     print(' |- Opening KNX communication...')
     xknx = XKNX(telegram_received_cb=knx_telegram_received,
@@ -115,7 +119,12 @@ async def main():
     print(f'  |- Socket: {constants.TRANSPORT.get_extra_info("socket")}')
     print(f'  |- Network port: {constants.PORT}')
     while True:
-        await asyncio.sleep(100)
+        # update json sources
+        update_json_sources()
+        update_actor_data(SWITCHLIST)
+        # wait 60 seconds for next json update
+        await asyncio.sleep(config['settings']['json_refresh'])
+
 
 
 # start web server

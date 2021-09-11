@@ -33,11 +33,11 @@ def create_datagram(messages, switch):
     msg_len = 0
     for msg in messages:
         if constants.DEBUG:
-            print(f'FUNCTION create_datagram: MESSAGE LENGTH: {len(msg)}')
+            print(f'[FUNCTION create_datagram] MESSAGE LENGTH: {len(msg)}')
         msg_len += len(msg)
     msg_len = int(msg_len / 2) + 16  # length of messages + 16 for headerdata
     if constants.DEBUG:
-        print(f'FUNCTION create_datagram: DATAGRAM LENGTH: {msg_len}')
+        print(f'[FUNCTION create_datagram] DATAGRAM LENGTH: {msg_len}')
     # generate packeID
     constants.PACKAGEID += 1
     if constants.PACKAGEID >= 65536:
@@ -131,11 +131,17 @@ def init_switch(switch):
 
 
 def send_set_page(switch, page):
+    """
+    Select a page on a switch
+    :param switch: The switch
+    :param page: the page number
+    :return:
+    """
     page = format(page, 'x').zfill(2)
     set_page = '062e0000' + page + '00'
 
     datagram = create_datagram([set_page], switch)
-    print(f'             |- Sending realvalue message: {datagram}')
+    print(f'             |- Sending set page message: {datagram}')
     # send data to switch
     constants.TRANSPORT.sendto(unhexlify(datagram), (switch.ip, constants.PORT))
 
@@ -163,11 +169,9 @@ def send_real_value(switch, actor, value_1, value_2=None, value_3=None, value_4=
     msg_id = '43'
     # get the configured factor for the actor, as the switch only uses integer. The integer can
     # devided inside the switch config to show as float
-    print('actor', actor)
     for block in switch.config['mapping']:
         if switch.config['mapping'][block]['actor_id'] == actor:
             factor = switch.config['mapping'][block]['factor']
-    print('factor', factor)
     actor = hex(actor)[2:].zfill(4)
     value_1 = hex(round(value_1 * factor))[2:].zfill(4)
 
@@ -202,11 +206,50 @@ def send_edit_value(switch, actor, value):
     msg_id = '42'
     # get the configured factor for the actor, as the switch only uses integer. The integer can
     # devided inside the switch config to show as float
-    print('actor', actor)
     for block in switch.config['mapping']:
         if switch.config['mapping'][block]['actor_id'] == actor:
             factor = switch.config['mapping'][block]['factor']
-    print('factor', factor)
+    actor = hex(actor)[2:].zfill(4)
+    value = hex(round(value * factor))[2:].zfill(4)
+
+    data = msg_length + msg_id + actor[2:4] + actor[0:2] + value[2:4] + value[0:2]
+
+    datagram = create_datagram([data], switch)
+    print(f'             |- Sending realvalue message: {datagram}')
+    # send data to switch
+    constants.TRANSPORT.sendto(unhexlify(datagram), (switch.ip, constants.PORT))
+
+
+def send_values(switch, actor, e_value=None, r_1_value=None, r_2_value=None, r_3_value=None,
+                r_4_value=None):
+    """
+    Send edit value and all realvalues to a given switch for an actor
+    :param switch: The corresponding switch
+    :param actor: The actor
+    :param e_value: the editvalue
+    :param r_1_value: the first realvalue
+    :param r_2_value: the second realvalue
+    :param r_3_value: the third realvalue
+    :param r_4_value: the fourth realvalue
+    :return:
+    """
+    # 0x00 MessageLength = 0x08, 0xA, 0xC, 0xE
+    # 0x01 MessageID = 0x41
+    # 0x02 - 0x03 ActorID = 0x0001..0xFFFF
+    # 0x04 - 0x05 EditValue
+    # 0x06 - 0x07 RealValues[0]
+    # 0x08 - 0x09 RealValues[1]
+    # 0x0A - 0x0B RealValues[2]
+    # 0x0C - 0x0D RealValues[3]
+    factor = 1
+
+    msg_length = '06'
+    msg_id = '42'
+    # get the configured factor for the actor, as the switch only uses integer. The integer can
+    # devided inside the switch config to show as float
+    for block in switch.config['mapping']:
+        if switch.config['mapping'][block]['actor_id'] == actor:
+            factor = switch.config['mapping'][block]['factor']
     actor = hex(actor)[2:].zfill(4)
     value = hex(round(value * factor))[2:].zfill(4)
 
