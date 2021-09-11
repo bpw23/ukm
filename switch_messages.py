@@ -2,19 +2,6 @@ from datetime import datetime
 import constants
 import math
 from binascii import unhexlify
-import socket
-
-
-def create_command(cmds):
-    """
-    creates a command message
-    :param
-    cmds: the command
-    :return:
-    the message
-    """
-    cmds
-    pass
 
 
 def create_datagram(messages, switch):
@@ -151,7 +138,7 @@ def send_real_value(switch, actor, value_1, value_2=None, value_3=None, value_4=
     Send value of actor to switch
     :param switch:
     :param actor:
-    :param value:
+    :param value_1:
     :return:
     """
     # msg header:
@@ -220,17 +207,17 @@ def send_edit_value(switch, actor, value):
     constants.TRANSPORT.sendto(unhexlify(datagram), (switch.ip, constants.PORT))
 
 
-def send_values(switch, actor, e_value=None, r_1_value=None, r_2_value=None, r_3_value=None,
-                r_4_value=None):
+def send_values(switch, actor, ev_value=None, rv_1_value=None, rv_2_value=None, rv_3_value=None,
+                rv_4_value=None):
     """
     Send edit value and all realvalues to a given switch for an actor
     :param switch: The corresponding switch
     :param actor: The actor
-    :param e_value: the editvalue
-    :param r_1_value: the first realvalue
-    :param r_2_value: the second realvalue
-    :param r_3_value: the third realvalue
-    :param r_4_value: the fourth realvalue
+    :param ev_value: the editvalue
+    :param rv_1_value: the first realvalue
+    :param rv_2_value: the second realvalue
+    :param rv_3_value: the third realvalue
+    :param rv_4_value: the fourth realvalue
     :return:
     """
     # 0x00 MessageLength = 0x08, 0xA, 0xC, 0xE
@@ -241,21 +228,104 @@ def send_values(switch, actor, e_value=None, r_1_value=None, r_2_value=None, r_3
     # 0x08 - 0x09 RealValues[1]
     # 0x0A - 0x0B RealValues[2]
     # 0x0C - 0x0D RealValues[3]
-    factor = 1
 
-    msg_length = '06'
-    msg_id = '42'
+    # load all values from switch.actor_values when they are not given to this function,
+    # because all 5 values must be send
+    if actor in switch.actor_values:
+        if not ev_value:
+            if 'ev_value' in switch.actor_values[actor]:
+                ev_value = switch.actor_values[actor]['ev_value']
+            else:
+                # need to set to 0, otherwise we can't send. All values are 0 on the switch if
+                # they haven't got data (e.g. Switch was just resetted)
+                ev_value = 0
+
+        if not rv_1_value:
+            if 'rv_1_value' in switch.actor_values[actor]:
+                rv_1_value = switch.actor_values[actor]['rv_1_value']
+            else:
+                # need to set to 0, otherwise we can't send. All values are 0 on the switch if
+                # they haven't got data (e.g. Switch was just resetted)
+                rv_1_value = 0
+
+        if not rv_2_value:
+            if 'rv_2_value' in switch.actor_values[actor]:
+                rv_2_value = switch.actor_values[actor]['rv_2_value']
+            else:
+                # need to set to 0, otherwise we can't send. All values are 0 on the switch if
+                # they haven't got data (e.g. Switch was just resetted)
+                rv_2_value = 0
+
+        if not rv_3_value:
+            if 'rv_3_value' in switch.actor_values[actor]:
+                rv_3_value = switch.actor_values[actor]['rv_3_value']
+            else:
+                # need to set to 0, otherwise we can't send. All values are 0 on the switch if
+                # they haven't got data (e.g. Switch was just resetted)
+                rv_3_value = 0
+
+        if not rv_4_value:
+            if 'rv_4_value' in switch.actor_values[actor]:
+                rv_4_value = switch.actor_values[actor]['rv_4_value']
+            else:
+                # need to set to 0, otherwise we can't send. All values are 0 on the switch if
+                # they haven't got data (e.g. Switch was just resetted)
+                rv_4_value = 0
+
+    else:
+        # if there is no data about this actor in switch.actor_values, create actor and set them
+        # all to 0
+        ev_value = 0
+        rv_1_value = 0
+        rv_2_value = 0
+        rv_3_value = 0
+        rv_4_value = 0
+        switch.actor_values[actor] = {'ev_value': ev_value,
+                                      'rv_1_value': rv_1_value,
+                                      'rv_2_value': rv_2_value,
+                                      'rv_3_value': rv_3_value,
+                                      'rv_4_value': rv_4_value
+                                      }
+
+    msg_length = '0e'
+    msg_id = '41'
+
     # get the configured factor for the actor, as the switch only uses integer. The integer can
     # devided inside the switch config to show as float
-    for block in switch.config['mapping']:
-        if switch.config['mapping'][block]['actor_id'] == actor:
-            factor = switch.config['mapping'][block]['factor']
-    actor = hex(actor)[2:].zfill(4)
-    value = hex(round(value * factor))[2:].zfill(4)
+    if actor in switch.config['actors']:
+        ev_factor = switch.config['actors'][actor]['e_value_factor']
+        ev_value = hex(round(ev_value * ev_factor))[2:].zfill(4)
 
-    data = msg_length + msg_id + actor[2:4] + actor[0:2] + value[2:4] + value[0:2]
+        rv_1_factor = switch.config['actors'][actor]['r_value_1_factor']
+        rv_1_value = hex(round(rv_1_value * rv_1_factor))[2:].zfill(4)
 
-    datagram = create_datagram([data], switch)
-    print(f'             |- Sending realvalue message: {datagram}')
-    # send data to switch
-    constants.TRANSPORT.sendto(unhexlify(datagram), (switch.ip, constants.PORT))
+        rv_2_factor = switch.config['actors'][actor]['r_value_2_factor']
+        rv_2_value = hex(round(rv_2_value * rv_2_factor))[2:].zfill(4)
+
+        rv_3_factor = switch.config['actors'][actor]['r_value_3_factor']
+        rv_3_value = hex(round(rv_3_value * rv_3_factor))[2:].zfill(4)
+
+        rv_4_factor = switch.config['actors'][actor]['r_value_4_factor']
+        rv_4_value = hex(round(rv_4_value * rv_4_factor))[2:].zfill(4)
+
+        actor = hex(int(actor))[2:].zfill(4)
+        # combine data to message
+        data = (msg_length + msg_id + actor[2:4] + actor[0:2]
+                + ev_value[2:4] + ev_value[0:2]
+                + rv_1_value[2:4] + rv_1_value[0:2]
+                + rv_2_value[2:4] + rv_2_value[0:2]
+                + rv_3_value[2:4] + rv_3_value[0:2]
+                + rv_4_value[2:4] + rv_4_value[0:2]
+                )
+        # create full datagram
+        datagram = create_datagram([data], switch)
+        # send data to switch
+        print(f'[FUNCTION send_values]- Sending message: {datagram}')
+        constants.TRANSPORT.sendto(unhexlify(datagram), (switch.ip, constants.PORT))
+
+    else:
+        # if the actor is not configured for this switch
+        if constants.DEBUG:
+            print(f"[FUNCTION send_values] Warning, the actor {actor} is not configured in the "
+                  f"switch {switch.name}. Can't send data!")
+        return
