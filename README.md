@@ -15,7 +15,7 @@ This is done via a config.json file (not included in the uploaded fiels here)
 Since the json 'styling' is still WIP, i will later upload the config.
 ___
 Working:
-- [X] Read json and write values to an actor (WIP)
+- [X] Read json and write values to an actor
 - [X] Read values from KNX and write to an actor on a switch
 - [X] Init the switch
 - [X] Write time to switch
